@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет — OmoParfum</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body style="background:#f8f9fa">
+    <div class="container" style="max-width:1000px;margin:30px auto;display:flex;flex-direction:column;align-items:center">
+        <div class="modal-content" style="position:static;box-shadow:none;width:100%">
+            <div class="modal-header" style="justify-content:space-between;flex-wrap:wrap;gap:10px">
+                <h3>Личный кабинет</h3>
+                <div style="display:flex;gap:10px">
+                    <a href="index.html" class="btn btn-outline btn-small">На главную</a>
+                    <button id="accLogout" class="btn btn-outline btn-small">Выйти</button>
+                </div>
+            </div>
+            <div class="account-tabs">
+                <button class="tab active" data-tab="orders">Заказы</button>
+                <button class="tab" data-tab="coupons">Купоны</button>
+                <button class="tab" data-tab="profile">Профиль</button>
+            </div>
+            <div class="modal-body">
+                <div id="accountDashboard" class="dashboard-grid" style="justify-items:center">
+                    <div class="dash-card" data-open-tab="orders"><i class="fas fa-receipt"></i><span>Текущие заказы</span></div>
+                    <div class="dash-card" data-open-tab="profile"><i class="fas fa-credit-card"></i><span>Личный счет</span></div>
+                    <div class="dash-card" data-open-tab="profile"><i class="fas fa-user"></i><span>Личные данные</span></div>
+                    <div class="dash-card" data-open-tab="orders"><i class="fas fa-clock-rotate-left"></i><span>История заказов</span></div>
+                    <div class="dash-card" data-open-tab="orders"><i class="fas fa-file-lines"></i><span>Профили заказов</span></div>
+                    <div class="dash-card" data-open-tab="orders"><i class="fas fa-cart-shopping"></i><span>Корзина</span></div>
+                    <div class="dash-card" data-open-tab="coupons"><i class="fas fa-ticket"></i><span>Купоны</span></div>
+                    <div class="dash-card" data-open-tab="profile"><i class="fas fa-address-book"></i><span>Контакты</span></div>
+                    <div class="dash-card" data-open-tab="profile"><i class="fas fa-heart"></i><span>Избранные</span></div>
+                </div>
+                <div id="tab-orders" class="tab-panel"></div>
+                <div id="tab-coupons" class="tab-panel" hidden></div>
+                <div id="tab-profile" class="tab-panel" hidden></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function readStore(key, fallback){ try{ return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch(e){ return fallback; } }
+    function writeStore(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+    function formatKZT(n){ return '₸'+Number(n).toLocaleString('ru-RU'); }
+    function getCurrentUser(){ return readStore('currentUser', null); }
+
+    function renderAccount(){
+        const userRef = getCurrentUser();
+        if (!userRef){ window.location.href = 'index.html#login'; return; }
+        const users = readStore('users', []);
+        const user = users.find(u=>u.id===userRef?.id);
+        if (!user){ window.location.href = 'index.html#login'; return; }
+        
+        const ordersEl = document.getElementById('tab-orders');
+        const couponsEl = document.getElementById('tab-coupons');
+        const profileEl = document.getElementById('tab-profile');
+        
+        if (ordersEl){
+            if (!user.orders || !user.orders.length) {
+                ordersEl.innerHTML = '<p style="text-align:center;padding:20px">У вас пока нет заказов.</p>';
+            } else {
+                ordersEl.innerHTML = user.orders.map(o=>`
+                    <div class="order-card" style="padding:12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--shell)">
+                        <div><strong>Заказ #${o.id}</strong> — ${new Date(o.date).toLocaleDateString('ru-RU')}</div>
+                        <div>${o.items.length} товаров · ${formatKZT(o.total)}</div>
+                    </div>
+                `).join('');
+            }
+            ordersEl.hidden = false; // Show orders by default
+        }
+        
+        if (couponsEl){
+            const list = (user.coupons && user.coupons.length) 
+                ? user.coupons.map(c=>`<li style="padding:8px;border-bottom:1px solid var(--line)">${c.code} — ${c.type==='percent'?c.value+'%':'₸'+c.value}</li>`).join('') 
+                : '<li style="padding:8px;text-align:center">Нет сохранённых купонов</li>';
+            couponsEl.innerHTML = `<ul style="list-style:none;padding:0;margin:0">${list}</ul>`;
+            couponsEl.hidden = true;
+        }
+        
+        if (profileEl){
+            const avatar = user.avatar || '';
+            profileEl.innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;gap:20px;padding:20px;background:var(--shell);border-radius:8px;border:1px solid var(--line)">
+                    <div style="position:relative">
+                        <div id="avatarPreview" style="width:120px;height:120px;border-radius:50%;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;overflow:hidden;border:3px solid var(--accent);cursor:pointer">
+                            ${avatar ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover" alt="Аватар">` : `<i class="fas fa-user" style="font-size:60px;color:var(--accent)"></i>`}
+                        </div>
+                        <input type="file" id="avatarInput" accept="image/*" style="display:none">
+                        <label for="avatarInput" style="position:absolute;bottom:0;right:0;width:36px;height:36px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:3px solid var(--shell);box-shadow:0 2px 8px rgba(0,0,0,0.2)">
+                            <i class="fas fa-camera" style="color:white;font-size:16px"></i>
+                        </label>
+                    </div>
+                    <div style="display:grid;gap:12px;width:100%;max-width:400px">
+                        <div>
+                            <label style="display:block;margin-bottom:4px;font-size:13px;color:var(--ink-soft);font-weight:500">Имя</label>
+                            <input type="text" id="profileName" value="${user.name || ''}" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px">
+                        </div>
+                        <div>
+                            <label style="display:block;margin-bottom:4px;font-size:13px;color:var(--ink-soft);font-weight:500">Email</label>
+                            <input type="email" id="profileEmail" value="${user.email || ''}" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px" readonly>
+                        </div>
+                        <div>
+                            <label style="display:block;margin-bottom:4px;font-size:13px;color:var(--ink-soft);font-weight:500">Телефон</label>
+                            <input type="tel" id="profilePhone" value="${user.phone || ''}" placeholder="+7 (___) ___-__-__" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px">
+                        </div>
+                        <div>
+                            <label style="display:block;margin-bottom:4px;font-size:13px;color:var(--ink-soft);font-weight:500">Адрес</label>
+                            <textarea id="profileAddress" rows="3" placeholder="Ваш адрес доставки" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px;resize:vertical">${user.address || ''}</textarea>
+                        </div>
+                        <button id="saveProfile" class="btn btn-outline" style="width:100%;margin-top:8px">Сохранить изменения</button>
+                    </div>
+                </div>
+            `;
+            profileEl.hidden = true;
+            
+            // Setup handlers after a short delay to ensure DOM is ready
+            setTimeout(() => setupProfileHandlers(user), 100);
+        }
+        
+        // Tabs switch functionality
+        const tabsBar = document.querySelector('.account-tabs');
+        if (tabsBar && !tabsBar.dataset.wired){
+            tabsBar.dataset.wired = '1';
+            tabsBar.addEventListener('click', (e)=>{
+                const btn = e.target.closest('.tab');
+                if(!btn) return;
+                tabsBar.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+                btn.classList.add('active');
+                const tab = btn.getAttribute('data-tab');
+                document.querySelectorAll('.tab-panel').forEach(p=>p.hidden=true);
+                const panel = document.getElementById('tab-'+tab);
+                if(panel) panel.hidden = false;
+            });
+        }
+
+        // Dashboard cards -> tabs
+        const dash = document.getElementById('accountDashboard');
+        if (dash && !dash.dataset.wired){
+            dash.dataset.wired = '1';
+            dash.addEventListener('click', (e)=>{
+                const card = e.target.closest('.dash-card');
+                if(!card) return;
+                const tab = card.getAttribute('data-open-tab');
+                const tabsBar = document.querySelector('.account-tabs');
+                const btn = tabsBar.querySelector(`.tab[data-tab="${tab}"]`);
+                if(btn) btn.click();
+            });
+        }
+    }
+
+    function setupProfileHandlers(user) {
+        // Avatar upload handler
+        const avatarInput = document.getElementById('avatarInput');
+        const avatarPreview = document.getElementById('avatarPreview');
+        if (avatarInput && avatarPreview) {
+            avatarInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (!file.type.startsWith('image/')) {
+                    alert('Пожалуйста, выберите изображение');
+                    return;
+                }
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('Размер файла не должен превышать 2 МБ');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const base64 = event.target.result;
+                    avatarPreview.innerHTML = `<img src="${base64}" style="width:100%;height:100%;object-fit:cover" alt="Аватар">`;
+                    // Save immediately
+                    const users = readStore('users', []);
+                    const userIdx = users.findIndex(u=>u.id===user.id);
+                    if (userIdx >= 0) {
+                        users[userIdx].avatar = base64;
+                        writeStore('users', users);
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // Save profile handler
+        const saveBtn = document.getElementById('saveProfile');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function() {
+                const name = document.getElementById('profileName').value.trim();
+                const phone = document.getElementById('profilePhone').value.trim();
+                const address = document.getElementById('profileAddress').value.trim();
+                
+                if (!name) {
+                    alert('Имя обязательно для заполнения');
+                    return;
+                }
+                
+                const users = readStore('users', []);
+                const userIdx = users.findIndex(u=>u.id===user.id);
+                if (userIdx >= 0) {
+                    users[userIdx].name = name;
+                    users[userIdx].phone = phone;
+                    users[userIdx].address = address;
+                    writeStore('users', users);
+                    alert('Профиль успешно сохранён!');
+                    renderAccount(); // Refresh
+                }
+            });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function(){
+        renderAccount();
+        
+        // Check if we should open profile tab (e.g., after registration)
+        const hash = window.location.hash;
+        if (hash === '#profile') {
+            setTimeout(() => {
+                const profileTab = document.querySelector('.account-tabs .tab[data-tab="profile"]');
+                if (profileTab) {
+                    profileTab.click();
+                }
+            }, 200);
+        }
+        
+        document.getElementById('accLogout').addEventListener('click', function(){
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html#login';
+        });
+    });
+    </script>
+</body>
+</html>

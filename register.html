@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация — OmoParfum</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body style="background:#f8f9fa">
+    <div class="container" style="max-width:520px;margin:40px auto;display:flex;flex-direction:column;align-items:center">
+        <div class="modal-content" style="position:static;box-shadow:none;width:100%">
+            <div class="modal-header" style="text-align:center">
+                <h3 style="width:100%">Создать аккаунт</h3>
+            </div>
+            <div class="modal-body">
+                <form id="standaloneRegister" class="auth-form">
+                    <label for="regName">Имя *</label>
+                    <input type="text" id="regName" placeholder="Ваше имя" required>
+                    <label for="regEmail">Email *</label>
+                    <input type="email" id="regEmail" placeholder="Ваш email" required>
+                    <label for="regPassword">Пароль *</label>
+                    <input type="password" id="regPassword" placeholder="Придумайте пароль" required>
+                    <button type="submit" class="btn btn-outline" style="width:100%">Создать аккаунт</button>
+                    <p class="muted" style="text-align:center">Уже есть аккаунт? <a href="index.html#login">Войти</a></p>
+                </form>
+            </div>
+        </div>
+        <p class="muted" style="text-align:center;margin-top:16px"><a href="index.html">← Вернуться на главную</a></p>
+    </div>
+    <script src="script.js"></script>
+    <script>
+    // Lightweight handler for standalone page
+    document.addEventListener('DOMContentLoaded', function(){
+        const form = document.getElementById('standaloneRegister');
+        if (!form) return;
+        form.addEventListener('submit', function(e){
+            e.preventDefault();
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim().toLowerCase();
+            const password = document.getElementById('regPassword').value;
+            const users = JSON.parse(localStorage.getItem('users')||'[]');
+            if (users.some(u=>u.email===email)) { alert('Пользователь уже существует'); return; }
+            const newUser = { 
+                id: Date.now(), 
+                name, 
+                email, 
+                password, 
+                orders: [], 
+                coupons: [],
+                phone: '',
+                address: '',
+                avatar: ''
+            };
+            users.push(newUser); 
+            localStorage.setItem('users', JSON.stringify(users));
+            localStorage.setItem('currentUser', JSON.stringify({id:newUser.id,email:newUser.email}));
+            // Redirect to account page and open profile tab
+            window.location.href = 'account.html#profile';
+        });
+    });
+    </script>
+</body>
+<html>
+
+
